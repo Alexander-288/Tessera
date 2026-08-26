@@ -7,8 +7,8 @@ No account, no backend, no network calls. Your library is stored in your own bro
 never leaves your machine.
 
 ## Demo
-
-Every visitor gets their own private library — the deployed page has no shared state.
+[
+Every visitor gets their own private library — the deployed page has no shared state.](https://alexander-288.github.io/Tessera/)
 
 ## Features
 
