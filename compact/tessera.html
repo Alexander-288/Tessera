@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tessera</title>
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2016%2016%22%20width=%2216%22%20height=%2216%22%20role=%22img%22%20aria-label=%22Tessera%22%3E%0A%20%20%3Ctitle%3ETessera%3C/title%3E%0A%20%20%3Crect%20width=%2216%22%20height=%2216%22%20fill=%22%23FFFFFF%22/%3E%0A%20%20%3Cg%20fill=%22none%22%20stroke=%22%23000000%22%20stroke-width=%221%22%3E%0A%20%20%20%20%3Crect%20x=%220.5%22%20y=%220.5%22%20width=%226%22%20height=%226%22%20fill=%22%23000000%22/%3E%0A%20%20%20%20%3Crect%20x=%229.5%22%20y=%220.5%22%20width=%226%22%20height=%226%22/%3E%0A%20%20%20%20%3Crect%20x=%220.5%22%20y=%229.5%22%20width=%226%22%20height=%226%22/%3E%0A%20%20%20%20%3Crect%20x=%229.5%22%20y=%229.5%22%20width=%226%22%20height=%226%22/%3E%0A%20%20%3C/g%3E%0A%3C/svg%3E">
 <style>
 :root{
   --ink:#000000;
@@ -28,7 +30,9 @@ body{
 .dim::before,.dim::after{content:"";flex:1;height:5px;border-top:var(--line);border-left:var(--line);border-right:var(--line)}
 
 header{padding:34px 0 0}
-.wordmark{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.42em;background:none;border:0;color:var(--ink);cursor:pointer;padding:0}
+.wordmark{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;font-weight:700;background:none;border:0;color:var(--ink);cursor:pointer;padding:0}
+.wordmark span{letter-spacing:.42em}
+.mark{flex:0 0 auto;width:14px;height:14px;display:block;stroke:currentColor;fill:none;stroke-width:1;shape-rendering:crispEdges}
 header .dim{margin-top:14px}
 
 /* ---- view switching ---- */
@@ -172,7 +176,15 @@ footer button{font:inherit;border:0;background:none;color:var(--ink);cursor:poin
 <body>
 
 <header>
-  <button type="button" class="wordmark" id="home">TESSERA</button>
+  <button type="button" class="wordmark" id="home">
+    <svg class="mark" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="0.5" y="0.5" width="6" height="6" fill="currentColor"/>
+      <rect x="9.5" y="0.5" width="6" height="6"/>
+      <rect x="0.5" y="9.5" width="6" height="6"/>
+      <rect x="9.5" y="9.5" width="6" height="6"/>
+    </svg>
+    <span>TESSERA</span>
+  </button>
   <div class="dim"></div>
 </header>
 
@@ -691,6 +703,18 @@ function miniGrid(list, host){
   host.replaceChildren(wrap);
 }
 
+/* ===== back trail =====
+   Opening a color from another color's "Near in color" or "Shares keywords"
+   stacks it, so Back returns to that color instead of dumping you in the
+   library. Ids only; entries for deleted items are dropped on use. */
+let trail = [];
+const backBtn = $("back");
+
+function labelBack(){
+  while (trail.length && !items.some(i => i.id === trail[trail.length - 1])) trail.pop();
+  backBtn.textContent = trail.length ? "← Back to color" : "← Library";
+}
+
 /* ===== variant preview =====
    A throwaway look at the other gradient rendering. It repaints the hero only;
    `item.type` is never written, so nothing here survives leaving the page. */
@@ -731,6 +755,13 @@ function setPeek(next, item){
 function open(id, push = true){
   const item = items.find(i => i.id === id);
   if (!item) return showLibrary();
+
+  /* Came from another color? remember it. Going back (push === false) instead
+     unwinds the trail, so browser Back and the button stay in step. */
+  const from = (!detail.hidden && openId && openId !== id) ? openId : null;
+  if (push){ if (from) trail.push(from); }
+  else if (trail[trail.length - 1] === id) trail.pop();
+
   openId = id;
   closeEdit();
 
@@ -774,12 +805,13 @@ function open(id, push = true){
     .sort((a,b) => b.n - a.n).slice(0, 12).map(x => x.i);
   miniGrid(shared, $("dtags"));
 
+  labelBack();
   if (push) pushRoute(id);
   $("dtitle").focus();
 }
 
 function showLibrary(push = true){
-  openId = null; peekType = null; closeEdit();
+  openId = null; peekType = null; trail = []; closeEdit();
   detail.hidden = true; library.hidden = false;
   library.style.animation = "none"; void library.offsetWidth; library.style.animation = "";
   render();
@@ -871,7 +903,12 @@ seg.addEventListener("click", e => {
   refreshEntry();
 });
 
-$("back").addEventListener("click", () => (CAN_HISTORY && history.length > 1) ? history.back() : showLibrary());
+backBtn.addEventListener("click", () => {
+  while (trail.length && !items.some(i => i.id === trail[trail.length - 1])) trail.pop();
+  if (CAN_HISTORY && history.length > 1) return history.back();   // popstate unwinds the trail
+  const prev = trail.pop();
+  return prev ? open(prev, false) : showLibrary();
+});
 $("home").addEventListener("click", () => showLibrary());
 editBtn.addEventListener("click", () => editMeta.hidden ? openEdit() : cancelEdit());
 eColors.addEventListener("input", refreshEdit);

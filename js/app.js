@@ -392,6 +392,18 @@ function miniGrid(list, host){
   host.replaceChildren(wrap);
 }
 
+/* ===== back trail =====
+   Opening a color from another color's "Near in color" or "Shares keywords"
+   stacks it, so Back returns to that color instead of dumping you in the
+   library. Ids only; entries for deleted items are dropped on use. */
+let trail = [];
+const backBtn = $("back");
+
+function labelBack(){
+  while (trail.length && !items.some(i => i.id === trail[trail.length - 1])) trail.pop();
+  backBtn.textContent = trail.length ? "← Back to color" : "← Library";
+}
+
 /* ===== variant preview =====
    A throwaway look at the other gradient rendering. It repaints the hero only;
    `item.type` is never written, so nothing here survives leaving the page. */
@@ -432,6 +444,13 @@ function setPeek(next, item){
 function open(id, push = true){
   const item = items.find(i => i.id === id);
   if (!item) return showLibrary();
+
+  /* Came from another color? remember it. Going back (push === false) instead
+     unwinds the trail, so browser Back and the button stay in step. */
+  const from = (!detail.hidden && openId && openId !== id) ? openId : null;
+  if (push){ if (from) trail.push(from); }
+  else if (trail[trail.length - 1] === id) trail.pop();
+
   openId = id;
   closeEdit();
 
@@ -475,12 +494,13 @@ function open(id, push = true){
     .sort((a,b) => b.n - a.n).slice(0, 12).map(x => x.i);
   miniGrid(shared, $("dtags"));
 
+  labelBack();
   if (push) pushRoute(id);
   $("dtitle").focus();
 }
 
 function showLibrary(push = true){
-  openId = null; peekType = null; closeEdit();
+  openId = null; peekType = null; trail = []; closeEdit();
   detail.hidden = true; library.hidden = false;
   library.style.animation = "none"; void library.offsetWidth; library.style.animation = "";
   render();
@@ -572,7 +592,12 @@ seg.addEventListener("click", e => {
   refreshEntry();
 });
 
-$("back").addEventListener("click", () => (CAN_HISTORY && history.length > 1) ? history.back() : showLibrary());
+backBtn.addEventListener("click", () => {
+  while (trail.length && !items.some(i => i.id === trail[trail.length - 1])) trail.pop();
+  if (CAN_HISTORY && history.length > 1) return history.back();   // popstate unwinds the trail
+  const prev = trail.pop();
+  return prev ? open(prev, false) : showLibrary();
+});
 $("home").addEventListener("click", () => showLibrary());
 editBtn.addEventListener("click", () => editMeta.hidden ? openEdit() : cancelEdit());
 eColors.addEventListener("input", refreshEdit);

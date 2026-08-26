@@ -10,15 +10,19 @@ so the two cannot drift apart.
 import pathlib
 import re
 import sys
+import urllib.parse
 
 ROOT = pathlib.Path(__file__).parent
 SRC = ROOT / "index.html"
 CSS = ROOT / "css" / "styles.css"
 JS = ROOT / "js" / "app.js"
+ICON = ROOT / "icon.svg"
 OUT = ROOT / "compact" / "tessera.html"
 
 LINK = '<link rel="stylesheet" href="css/styles.css">'
 SCRIPT = '<script src="js/app.js"></script>'
+ICO = '<link rel="icon" href="favicon.ico" sizes="any">'
+SVG_ICON = '<link rel="icon" type="image/svg+xml" href="icon.svg">'
 
 
 def read(p):
@@ -30,13 +34,21 @@ def read(p):
 def main():
     html, css, js = read(SRC), read(CSS), read(JS)
 
-    for needle in (LINK, SCRIPT):
+    for needle in (LINK, SCRIPT, ICO, SVG_ICON):
         if needle not in html:
             sys.exit("index.html no longer contains %s \u2014 update build-compact.py" % needle)
 
     # A literal </script> inside the JS would close the tag early. None exists
     # today, but escape defensively so a future string literal cannot break it.
     js = js.replace("</script>", "<\/script>")
+
+    # The compact build has to survive being opened straight off disk, so the
+    # icon rides along as a data URI and the external .ico link is dropped.
+    icon = urllib.parse.quote(read(ICON).strip(), safe="/:=")
+    html = html.replace(ICO, "")
+    html = html.replace(
+        SVG_ICON,
+        '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%s">' % icon)
 
     html = html.replace(LINK, "<style>\n%s\n</style>" % css.strip())
     html = html.replace(SCRIPT, "<script>\n%s\n</script>" % js.strip())
@@ -45,7 +57,7 @@ def main():
     OUT.write_text(html, encoding="utf-8", newline="\n")
 
     # Sanity: nothing should still point at the external files.
-    leftover = re.findall(r'(?:href|src)="(?:css|js)/[^"]+"', html)
+    leftover = re.findall(r'(?:href|src)="(?!data:)(?:css/|js/|icon\.svg|favicon\.ico)[^"]*"', html)
     if leftover:
         sys.exit("external references survived inlining: %s" % leftover)
 

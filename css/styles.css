@@ -21,7 +21,9 @@ body{
 .dim::before,.dim::after{content:"";flex:1;height:5px;border-top:var(--line);border-left:var(--line);border-right:var(--line)}
 
 header{padding:34px 0 0}
-.wordmark{font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.42em;background:none;border:0;color:var(--ink);cursor:pointer;padding:0}
+.wordmark{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;font-weight:700;background:none;border:0;color:var(--ink);cursor:pointer;padding:0}
+.wordmark span{letter-spacing:.42em}
+.mark{flex:0 0 auto;width:14px;height:14px;display:block;stroke:currentColor;fill:none;stroke-width:1;shape-rendering:crispEdges}
 header .dim{margin-top:14px}
 
 /* ---- view switching ---- */

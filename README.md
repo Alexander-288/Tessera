@@ -7,8 +7,10 @@ No account, no backend, no network calls. Your library is stored in your own bro
 never leaves your machine.
 
 ## Demo
-[
-Every visitor gets their own private library — the deployed page has no shared state.](https://alexander-288.github.io/Tessera/)
+
+**<https://alexander-288.github.io/Tessera/>**
+
+Every visitor gets their own private library — the deployed page has no shared state.
 
 ## Features
 
@@ -37,6 +39,10 @@ saved or imported jumps to the front so you can see it.
 hero between stepped and smooth so you can compare them. It is a look, not an edit: the
 saved item is untouched, and the preview drops the moment you leave the page or open the
 editor.
+
+**Retraceable.** Opening a color from another color's neighbors turns the back link into
+*Back to color*, returning you along the trail you actually followed rather than dumping
+you in the library. It reads *Library* only when that is genuinely where you came from.
 
 **Neighbors.** Each item's detail view shows the nearest colors in your library by
 perceptual distance (redmean approximation), alongside items sharing its keywords.
@@ -84,8 +90,11 @@ to the split version; the split was a pure extraction with no code changes.
 index.html             markup only
 css/styles.css         all styling
 js/app.js              all behavior
+icon.svg               the mark: four tesserae, one inked
+favicon.ico            16/32/48/64px, generated from the same geometry
 compact/tessera.html   single-file build of the same app
 build-compact.py       regenerates the file above from the three sources
+make-favicon.py        regenerates favicon.ico (needs Pillow)
 ```
 
 There are no dependencies and no package manager. The compact file is generated from the
@@ -95,8 +104,16 @@ split sources, so edit those and regenerate rather than editing it directly:
 python build-compact.py
 ```
 
-That inlines the CSS and JS and verifies no external reference survived. Nothing else in
-the project needs a build step.
+That inlines the CSS and JS, embeds the icon as a data URI so the file stays portable, and
+verifies no external reference survived.
+
+`favicon.ico` is checked in, so you only need to regenerate it if you change the mark:
+
+```bash
+python make-favicon.py
+```
+
+That one needs Pillow; nothing else in the project has a dependency.
 
 ## Storage
 
