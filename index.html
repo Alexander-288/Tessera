@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tessera</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<header>
+  <button type="button" class="wordmark" id="home">TESSERA</button>
+  <div class="dim"></div>
+</header>
+
+<!-- ============ LIBRARY ============ -->
+<section class="view" id="library">
+  <div class="console" id="console" data-mode="search">
+    <div class="bar">
+      <button type="button" class="mode" id="modeBtn" aria-pressed="false">
+        <span class="sr" id="modeLabel">Switch to add mode</span>
+        <svg id="modeIcon" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="7" cy="7" r="4.4"/><line x1="10.2" y1="10.2" x2="14" y2="14"/>
+        </svg>
+      </button>
+      <input type="text" id="cmd" spellcheck="false" autocapitalize="off" autocomplete="off"
+             placeholder="Search by vibe, tag, or hex" aria-label="Search or add">
+    </div>
+
+    <div class="tray" id="tray" aria-hidden="true">
+      <div>
+        <div class="inner"><div class="boxwrap"><div class="box empty" id="box" aria-hidden="true"></div></div></div>
+        <div class="bar">
+          <input type="text" id="name" spellcheck="false" autocapitalize="off" autocomplete="off"
+                 placeholder="name (optional)" aria-label="Name, optional">
+        </div>
+        <div class="bar">
+          <input type="text" id="tags" spellcheck="false" autocapitalize="off" autocomplete="off"
+                 placeholder="neon aggressive synthwave" aria-label="Tags, separated by spaces">
+        </div>
+        <div class="opts">
+          <div class="seg" id="seg" role="group" aria-label="Gradient type">
+            <button type="button" data-type="stepped" aria-pressed="true">Stepped</button>
+            <button type="button" data-type="smooth" aria-pressed="false">Smooth</button>
+          </div>
+          <button type="button" class="save" id="save">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <p class="hint" id="hint">Start with <kbd>/</kbd> to add a color instead.</p>
+  </div>
+
+  <p class="shownrow"><span id="shown">0 shown</span></p>
+  <div class="grid" id="grid"></div>
+  <p class="blank" id="blank" hidden></p>
+</section>
+
+<!-- ============ DETAIL ============ -->
+<section class="view" id="detail" hidden aria-labelledby="dtitle">
+  <button type="button" class="back" id="back">&larr; Library</button>
+  <div class="hero"><div class="box" id="dbox" aria-hidden="true"></div></div>
+  <div id="displayMeta">
+    <h1 class="dtitle" id="dtitle" tabindex="-1"></h1>
+    <p class="dsub" id="dsub"></p>
+  </div>
+
+  <div id="editMeta" hidden>
+    <div class="bar"><input type="text" id="eName" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="name (optional)" aria-label="Name, optional"></div>
+    <div class="bar"><input type="text" id="eColors" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="any CSS color, separated by spaces" aria-label="Colors in any CSS notation, separated by spaces"></div>
+    <div class="bar"><input type="text" id="eTags" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="keywords, separated by spaces" aria-label="Keywords, separated by spaces"></div>
+    <div class="opts">
+      <div class="seg" id="eSeg" role="group" aria-label="Gradient type">
+        <button type="button" data-type="stepped" aria-pressed="true">Stepped</button>
+        <button type="button" data-type="smooth" aria-pressed="false">Smooth</button>
+      </div>
+      <button type="button" class="save" id="eSave">Save changes</button>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn" id="editBtn" aria-expanded="false" aria-controls="editMeta">Edit</button>
+    <button type="button" class="btn" id="delBtn">Delete</button>
+  </div>
+
+  <div class="cols">
+    <div class="sec"><h2>Values</h2><div id="dvalues"></div></div>
+    <div class="sec"><h2>Near in color</h2><div id="dnear"></div></div>
+    <div class="sec"><h2>Shares keywords</h2><div id="dtags"></div></div>
+  </div>
+</section>
+
+<footer>
+  <button type="button" id="export">Export</button>
+  <button type="button" id="import">Import</button>
+  <span id="count" class="tally">0 items</span>
+  <span id="status" role="status" aria-live="polite"></span>
+</footer>
+
+<script src="js/app.js"></script>
+</body>
+</html>
