@@ -19,6 +19,14 @@ const store = (() => {
 
 let items = [], mode = "search", entryType = "stepped", editType = "stepped", openId = null;
 
+/* Display order is shuffled and lives only in memory — the stored order in
+   `items` is never touched, so export/import stay stable and reproducible. */
+let order = new Map();
+const reshuffle = () => { order = new Map(items.map(i => [i.id, Math.random()])); };
+/* An id with no key yet is one just added or imported: float it to the front so
+   you actually see what you saved instead of it landing somewhere random. */
+const orderKey = i => order.has(i.id) ? order.get(i.id) : -1;
+
 /* ===== color math ===== */
 /* --- input parsing: hex, any CSS color the browser knows, plus HSB and CMYK --- */
 const _cv = document.createElement("canvas");
@@ -219,7 +227,8 @@ const cmd = $("cmd"), tags = $("tags"), nameIn = $("name"), grid = $("grid"), se
       library = $("library"), detail = $("detail"), dbox = $("dbox"),
       eColors = $("eColors"), eTags = $("eTags"), eName = $("eName"), eSeg = $("eSeg"),
       displayMeta = $("displayMeta"), editMeta = $("editMeta"),
-      editBtn = $("editBtn"), delBtn = $("delBtn");
+      editBtn = $("editBtn"), delBtn = $("delBtn"),
+      typeBtn = $("typeBtn"), typeLabel = $("typeLabel");
 const ICON = {
   search: '<circle cx="7" cy="7" r="4.4"/><line x1="10.2" y1="10.2" x2="14" y2="14"/>',
   add:    '<line x1="8" y1="2.5" x2="8" y2="13.5"/><line x1="2.5" y1="8" x2="13.5" y2="8"/>'
@@ -273,7 +282,7 @@ function refreshEntry(){
 /* ===== library render ===== */
 function render(){
   const q = mode === "search" ? cmd.value.trim() : "";
-  const visible = items.filter(i => matches(i, q));
+  const visible = items.filter(i => matches(i, q)).sort((a,b) => orderKey(a) - orderKey(b));
   grid.replaceChildren();
 
   visible.forEach(item => {
@@ -383,6 +392,43 @@ function miniGrid(list, host){
   host.replaceChildren(wrap);
 }
 
+/* ===== variant preview =====
+   A throwaway look at the other gradient rendering. It repaints the hero only;
+   `item.type` is never written, so nothing here survives leaving the page. */
+let peekType = null;                        // null = showing the item as saved
+
+function describe(item, shownType){
+  const words = [...new Set(item.colors.flatMap(hexName))].slice(0, 4);
+  return [
+    item.name ? item.colors.join(", ") : null,
+    shownType,
+    item.tags.length ? item.tags.join(", ") : "no keywords",
+    "reads as " + words.join(", "),
+    new Date(item.date_added).toLocaleDateString()
+  ].filter(Boolean).join(" · ");
+}
+function paintDetail(item){
+  const shown = peekType || item.type;
+  paintBox(dbox, item.colors, shown);
+  $("dsub").replaceChildren();
+  if (peekType){
+    const tag = document.createElement("span");
+    tag.className = "peek";
+    tag.textContent = "preview · " + peekType;
+    $("dsub").appendChild(tag);
+  }
+  $("dsub").appendChild(document.createTextNode(describe(item, shown)));
+  const other = shown === "smooth" ? "stepped" : "smooth";
+  typeBtn.setAttribute("aria-pressed", String(!!peekType));
+  typeBtn.title = peekType ? "Back to the saved " + item.type + " variant"
+                           : "Preview the " + other + " variant";
+  typeLabel.textContent = typeBtn.title;
+}
+function setPeek(next, item){
+  peekType = next;
+  paintDetail(item);
+}
+
 function open(id, push = true){
   const item = items.find(i => i.id === id);
   if (!item) return showLibrary();
@@ -392,16 +438,11 @@ function open(id, push = true){
   library.hidden = true; detail.hidden = false;
   detail.style.animation = "none"; void detail.offsetWidth; detail.style.animation = "";
 
-  paintBox(dbox, item.colors, item.type);
   $("dtitle").textContent = item.name || item.colors.join("  ");
-  const words = [...new Set(item.colors.flatMap(hexName))].slice(0, 4);
-  $("dsub").textContent = [
-    item.name ? item.colors.join(", ") : null,
-    item.type,
-    item.tags.length ? item.tags.join(", ") : "no keywords",
-    "reads as " + words.join(", "),
-    new Date(item.date_added).toLocaleDateString()
-  ].filter(Boolean).join(" \u00B7 ");
+  /* Only multi-color items have another variant to look at. */
+  typeBtn.hidden = item.colors.length < 2;
+  peekType = null;                    // every open starts on the saved variant
+  paintDetail(item);
 
   /* values */
   const vals = $("dvalues");
@@ -439,7 +480,7 @@ function open(id, push = true){
 }
 
 function showLibrary(push = true){
-  openId = null; closeEdit();
+  openId = null; peekType = null; closeEdit();
   detail.hidden = true; library.hidden = false;
   library.style.animation = "none"; void library.offsetWidth; library.style.animation = "";
   render();
@@ -474,7 +515,8 @@ function openEdit(){
 function cancelEdit(){
   const item = items.find(i => i.id === openId);
   closeEdit();
-  if (item) paintBox(dbox, item.colors, item.type);   // hero box back to what's saved
+  peekType = null;                                    // a preview never survives the editor
+  if (item) paintDetail(item);                        // hero box back to what's saved
 }
 function refreshEdit(){
   const colors = parseColors(eColors.value);
@@ -540,6 +582,17 @@ eSeg.addEventListener("click", e => {
   [...eSeg.querySelectorAll("button")].forEach(b => b.setAttribute("aria-pressed", String(b === btn)));
   refreshEdit();
 });
+typeBtn.addEventListener("click", () => {
+  const item = items.find(i => i.id === openId);
+  if (!item || item.colors.length < 2) return;
+  const shown = peekType || item.type;
+  /* Toggling back to the item's own type clears the preview entirely, so the
+     button reads as off whenever what you see is what is stored. */
+  const next = shown === "smooth" ? "stepped" : "smooth";
+  setPeek(next === item.type ? null : next, item);
+  say(peekType ? "Previewing " + peekType + " — not saved" : "Showing saved " + item.type);
+});
+
 $("eSave").addEventListener("click", saveEdit);
 eTags.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); saveEdit(); }});
 eColors.addEventListener("keydown", e => { if (e.key === "Enter"){ e.preventDefault(); eTags.focus(); }});
@@ -565,40 +618,105 @@ document.addEventListener("keydown", e => {
 });
 if (CAN_HISTORY) window.addEventListener("popstate", e => (e.state && e.state.id) ? open(e.state.id, false) : showLibrary(false));
 
-$("export").addEventListener("click", async () => {
-  const json = JSON.stringify(items, null, 2);
-  try { await navigator.clipboard.writeText(json); say("Copied " + items.length + " items as JSON"); }
-  catch { window.prompt("Copy your library:", json); }
+/* ===== shuffle ===== */
+const shuffleBtn = $("shuffle"), shuffleIcon = shuffleBtn.querySelector("svg");
+shuffleBtn.addEventListener("click", () => {
+  if (items.length < 2){ say(items.length ? "Only one item" : "Nothing to shuffle"); return; }
+  reshuffle();
+  render();
+  shuffleIcon.classList.remove("spin"); void shuffleIcon.offsetWidth; shuffleIcon.classList.add("spin");
+  say("Shuffled");
 });
-$("import").addEventListener("click", async () => {
-  const raw = window.prompt("Paste a Tessera export. Duplicates are skipped.");
-  if (!raw) return;
+
+/* ===== import / export =====
+   window.prompt() throws outright in some embedding contexts, which is what
+   used to make Import a dead button. Everything runs through an inline panel
+   instead, which doubles as the manual fallback when the clipboard is denied. */
+const iopanel = $("iopanel"), ioText = $("ioText"), ioTitle = $("ioTitle"),
+      ioHint = $("ioHint"), ioGo = $("ioGo");
+let ioMode = null;
+
+function openIO(kind, text){
+  ioMode = kind;
+  const importing = kind === "import";
+  ioTitle.textContent = importing ? "Import" : "Export";
+  ioHint.textContent = importing ? "Duplicates are skipped."
+                                 : "Clipboard unavailable — copy this by hand.";
+  ioGo.textContent = importing ? "Import" : "Done";
+  ioText.readOnly = !importing;
+  ioText.placeholder = importing ? "Paste a Tessera export here" : "";
+  ioText.value = text || "";
+  iopanel.hidden = false;
+  void iopanel.offsetWidth;          // let [hidden] drop before animating open
+  iopanel.classList.add("open");
+  ioText.focus();
+  if (!importing) ioText.select();
+}
+function closeIO(){
+  ioMode = null;
+  iopanel.classList.remove("open");
+  const done = () => { if (!iopanel.classList.contains("open")){ iopanel.hidden = true; ioText.value = ""; } };
+  setTimeout(done, 320);
+}
+
+function runImport(){
+  const raw = ioText.value.trim();
+  if (!raw){ say("Nothing to import"); ioText.focus(); return; }
   let incoming;
-  try { incoming = JSON.parse(raw); } catch { say("Import failed: not valid JSON"); return; }
-  if (!Array.isArray(incoming)){ say("Import failed: expected a list"); return; }
-  let added = 0, skipped = 0;
+  try { incoming = JSON.parse(raw); }
+  catch { say("Import failed: not valid JSON"); ioText.focus(); return; }
+  if (!Array.isArray(incoming)){ say("Import failed: expected a list"); ioText.focus(); return; }
+
+  let added = 0, skipped = 0, bad = 0;
   incoming.forEach(i => {
-    if (!i || !Array.isArray(i.colors)) return;
+    if (!i || !Array.isArray(i.colors)){ bad++; return; }
     const colors = parseColors(i.colors.join(" "));
-    if (!colors.length) return;
+    if (!colors.length){ bad++; return; }
     if (findBySignature(signature(colors))){ skipped++; return; }
     items.unshift({
       id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
       name: typeof i.name === "string" ? i.name : "",
       colors,
       type: i.type || (colors.length === 1 ? "single" : "stepped"),
-      tags: Array.isArray(i.tags) ? i.tags : [],
+      tags: Array.isArray(i.tags) ? i.tags.filter(t => typeof t === "string") : [],
       date_added: i.date_added || new Date().toISOString()
     });
     added++;
   });
-  await persist(); render();
-  say("Imported " + added + (skipped ? ", skipped " + skipped + " duplicate" + (skipped > 1 ? "s" : "") : ""));
+
+  persist(); render();
+  closeIO();
+  const notes = [];
+  if (skipped) notes.push(skipped + " duplicate" + (skipped > 1 ? "s" : ""));
+  if (bad) notes.push(bad + " unreadable");
+  say("Imported " + added + (notes.length ? " — skipped " + notes.join(", ") : ""));
+}
+
+$("export").addEventListener("click", async () => {
+  if (!items.length){ say("Nothing to export yet"); return; }
+  const json = JSON.stringify(items, null, 2);
+  try {
+    await navigator.clipboard.writeText(json);
+    say("Copied " + items.length + " items as JSON");
+  } catch {
+    openIO("export", json);          // no clipboard: show it so it can be copied by hand
+  }
+});
+$("import").addEventListener("click", () => {
+  if (ioMode === "import") return closeIO();   // second click closes it again
+  openIO("import", "");
+});
+ioGo.addEventListener("click", () => ioMode === "import" ? runImport() : closeIO());
+$("ioCancel").addEventListener("click", closeIO);
+ioText.addEventListener("keydown", e => {
+  if (e.key === "Escape"){ e.stopPropagation(); closeIO(); }
+  if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && ioMode === "import"){ e.preventDefault(); runImport(); }
 });
 
 /* ===== boot ===== */
 (async () => {
   items = await store.load();
+  reshuffle();                 // a fresh arrangement on every visit
   setMode("search", false);
   const m = CAN_HISTORY ? /^#i=(.+)$/.exec(location.hash) : null;
   if (m && items.some(i => i.id === m[1])) open(m[1], false); else cmd.focus();

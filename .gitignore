@@ -12,3 +12,7 @@ desktop.ini
 # Local tooling / agent scratch
 .claude/
 node_modules/
+
+# Python bytecode (build-compact.py)
+__pycache__/
+*.pyc

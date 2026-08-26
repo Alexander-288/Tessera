@@ -28,6 +28,16 @@ dropped.
 **Stepped or smooth.** Multi-color items render as hard-edged bands or as a linear
 gradient, toggled per item.
 
+**Shuffled every visit.** The gallery arrives in a fresh random order on each open, and
+the shuffle button beside the item count reorders it again on demand. This is a display
+concern only — the stored order never changes, so exports stay stable. Anything you just
+saved or imported jumps to the front so you can see it.
+
+**Preview the other variant.** On a multi-color item, the button beside its name swaps the
+hero between stepped and smooth so you can compare them. It is a look, not an edit: the
+saved item is untouched, and the preview drops the moment you leave the page or open the
+editor.
+
 **Neighbors.** Each item's detail view shows the nearest colors in your library by
 perceptual distance (redmean approximation), alongside items sharing its keywords.
 
@@ -36,7 +46,9 @@ Multi-color items additionally expose the ready-made CSS gradient, a comma-separ
 and a JSON array.
 
 **Export / import.** Export copies your whole library to the clipboard as JSON. Import
-takes it back, skipping any item whose color set you already have.
+opens an inline panel you paste into, skipping any item whose color set you already have
+and reporting anything it could not read. If the clipboard is blocked, export falls back to
+the same panel so you can copy by hand.
 
 ## Keyboard
 
@@ -45,7 +57,8 @@ takes it back, skipping any item whose color set you already have.
 | `/` | Jump to add mode from anywhere |
 | `Enter` | Advance to the next field |
 | `Ctrl` / `Cmd` + `Enter` | Save immediately from the color field |
-| `Esc` | Cancel the entry, close the editor, or return to the library |
+| `Esc` | Cancel the entry, close the editor, close the import panel, or return to the library |
+| `Ctrl` / `Cmd` + `Enter` | Run the import while focused in the import panel |
 
 ## Running it
 
@@ -72,11 +85,18 @@ index.html             markup only
 css/styles.css         all styling
 js/app.js              all behavior
 compact/tessera.html   single-file build of the same app
+build-compact.py       regenerates the file above from the three sources
 ```
 
-There is no build step, no dependencies, and no package manager. Editing the split files
-does not regenerate the compact one — if you change the app and want both to stay in sync,
-inline `styles.css` into a `<style>` block and `app.js` into a `<script>` block.
+There are no dependencies and no package manager. The compact file is generated from the
+split sources, so edit those and regenerate rather than editing it directly:
+
+```bash
+python build-compact.py
+```
+
+That inlines the CSS and JS and verifies no external reference survived. Nothing else in
+the project needs a build step.
 
 ## Storage
 

@@ -51,7 +51,18 @@
     <p class="hint" id="hint">Start with <kbd>/</kbd> to add a color instead.</p>
   </div>
 
-  <p class="shownrow"><span id="shown">0 shown</span></p>
+  <div class="shownrow">
+    <span id="shown">0 shown</span>
+    <button type="button" class="iconbtn" id="shuffle" title="Shuffle order">
+      <span class="sr">Shuffle the order colors are shown in</span>
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M1 4h3.2c1 0 1.6.5 2.4 1.5M9 10.4c.9 1.1 1.5 1.6 2.5 1.6H14"/>
+        <path d="M1 12h3.2c2.6 0 3.4-8 6.2-8H14"/>
+        <polyline points="11.9 1.8 14.3 4 11.9 6.2"/>
+        <polyline points="11.9 9.8 14.3 12 11.9 14.2"/>
+      </svg>
+    </button>
+  </div>
   <div class="grid" id="grid"></div>
   <p class="blank" id="blank" hidden></p>
 </section>
@@ -61,7 +72,19 @@
   <button type="button" class="back" id="back">&larr; Library</button>
   <div class="hero"><div class="box" id="dbox" aria-hidden="true"></div></div>
   <div id="displayMeta">
-    <h1 class="dtitle" id="dtitle" tabindex="-1"></h1>
+    <div class="titlerow">
+      <h1 class="dtitle" id="dtitle" tabindex="-1"></h1>
+      <button type="button" class="iconbtn" id="typeBtn" hidden aria-pressed="false" title="Preview the other variant">
+        <span class="sr" id="typeLabel">Preview the smooth variant</span>
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="1.2" y="3.4" width="13.6" height="9.2"/>
+          <line x1="4.6" y1="3.4" x2="4.6" y2="12.6"/>
+          <line x1="8" y1="3.4" x2="8" y2="12.6"/>
+          <line x1="10.4" y1="3.4" x2="10.4" y2="12.6" stroke-dasharray="1.4 1.4"/>
+          <line x1="12.4" y1="3.4" x2="12.4" y2="12.6" stroke-dasharray=".7 2"/>
+        </svg>
+      </button>
+    </div>
     <p class="dsub" id="dsub"></p>
   </div>
 
@@ -89,6 +112,19 @@
     <div class="sec"><h2>Shares keywords</h2><div id="dtags"></div></div>
   </div>
 </section>
+
+<div class="iopanel" id="iopanel" hidden aria-labelledby="ioTitle">
+  <div>
+    <h2 class="iotitle" id="ioTitle">Import</h2>
+    <textarea id="ioText" spellcheck="false" autocapitalize="off" autocomplete="off"
+              placeholder="Paste a Tessera export here" aria-label="Library JSON"></textarea>
+    <div class="opts">
+      <span class="hint" id="ioHint">Duplicates are skipped.</span>
+      <button type="button" class="btn" id="ioCancel">Cancel</button>
+      <button type="button" class="save" id="ioGo">Import</button>
+    </div>
+  </div>
+</div>
 
 <footer>
   <button type="button" id="export">Export</button>
