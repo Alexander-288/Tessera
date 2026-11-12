@@ -24,7 +24,7 @@ LINK = '<link rel="stylesheet" href="css/styles.css">'
 SCRIPT = '<script src="js/app.js"></script>'
 ICO = '<link rel="icon" href="favicon.ico" sizes="any">'
 SVG_ICON = '<link rel="icon" type="image/svg+xml" href="icon.svg">'
-MARK_TAG = '<img class="mark" src="mark.svg" alt="" width="36" height="24">'
+MARK_TAG = '<img class="mark" src="mark.svg" alt="" width="19" height="24">'
 
 
 def read(p):
@@ -55,7 +55,7 @@ def main():
     mark = urllib.parse.quote(read(MARK).strip(), safe="/:=")
     html = html.replace(
         MARK_TAG,
-        '<img class="mark" src="data:image/svg+xml,%s" alt="" width="36" height="24">' % mark)
+        '<img class="mark" src="data:image/svg+xml,%s" alt="" width="19" height="24">' % mark)
 
     html = html.replace(LINK, "<style>\n%s\n</style>" % css.strip())
     html = html.replace(SCRIPT, "<script>\n%s\n</script>" % js.strip())

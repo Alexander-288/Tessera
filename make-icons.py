@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Build the Tessera mark and its icons from one piece of geometry.
 
+The mark is a pile of three tesserae with a fourth sliding off the top. Every
+tile is the same parallelogram, sheared 2:1 like the rest of the family's
+marks, and the four carry a violet-to-amber ramp.
+
 Writes:
-    mark.svg      the mark on its own, 3:2, transparent ground (used in the header)
+    mark.svg      the mark on its own, transparent ground (used in the header)
     icon.svg      the same mark centred on a square paper ground
-    favicon.ico   16/32/48/64px; under 48px the grout is dropped so it stays readable
+    favicon.ico   16/32/48/64px, drawn per size
 
     python make-icons.py
 
@@ -16,142 +20,68 @@ import struct
 ROOT = pathlib.Path(__file__).parent
 
 # ---- geometry -------------------------------------------------------------
-# A T drawn like the other marks in the family: every cut runs 2:1, the stem
-# leans with it, and the bar is as deep as the arms on the fold mark.
-W, H = 530.0, 353.0
-LEAN = 0.5      # x shifts half a unit for every unit of height
-BAR = 88.0      # depth of the top bar
-STEM = 110.0    # thickness of the stem
-CELL = 59.0     # tessera pitch
-GROUT = 6.0     # gap between tesserae
+TILE_W, TILE_H = 196, 100   # one tessera, before the shear
+LEAN = 0.5                  # x shifts half a unit for every unit of height
+GAP = 22                    # between tiles in the pile
+SLIDE = 128                 # how far the loose tessera has slid sideways
+LIFT = 27                   # and how far clear of the pile it sits
 
-SQUARE = 616.0  # square icon canvas, leaves the mark a margin to breathe
+W = TILE_W + LEAN * TILE_H + SLIDE          # 374
+H = 3 * TILE_H + 2 * GAP + TILE_H + LIFT    # 471
+SQUARE = round(max(W, H) * 1.18)
 OFFSET = ((SQUARE - W) / 2, (SQUARE - H) / 2)
 
 PAPER = "#FFFFFF"
-# Indigo through the brand periwinkle to warm sand, read along the 2:1 diagonal.
-STOPS = [(0.00, (36, 24, 160)), (0.30, (108, 91, 255)), (0.55, (150, 150, 255)),
-         (0.80, (255, 122, 168)), (1.00, (255, 159, 74))]
+# bottom of the pile upwards, the loose tessera last
+COLOURS = ["#3B1D7A", "#7C3AED", "#D946AA", "#FFB357"]
 
 
-def outline():
-    """The T as a closed polygon, clockwise from the top-left of the bar."""
-    bar_top, bar_bottom = LEAN * BAR, 0.0
-    right_bottom = W - LEAN * BAR
-    centre = right_bottom / 2
-    left, right = centre - STEM / 2, centre + STEM / 2
-    drop = H - BAR
-    return [(bar_top, 0.0), (W, 0.0), (right_bottom, BAR), (right, BAR),
-            (right - LEAN * drop, H), (left - LEAN * drop, H), (left, BAR),
-            (bar_bottom, BAR)]
-
-
-def ramp(t):
-    t = max(0.0, min(1.0, t))
-    for (a, ca), (b, cb) in zip(STOPS, STOPS[1:]):
-        if t <= b:
-            u = 0.0 if b == a else (t - a) / (b - a)
-            return tuple(round(ca[i] + (cb[i] - ca[i]) * u) for i in range(3))
-    return STOPS[-1][1]
-
-
-def axis(x, y):
-    """Where a point sits along the gradient, read along the 2:1 diagonal."""
-    return (x / W) * 0.62 + (1 - y / H) * 0.38
-
-
-def _inside(poly, x, y):
-    hit = False
-    for i in range(len(poly)):
-        (x1, y1), (x2, y2) = poly[i], poly[(i + 1) % len(poly)]
-        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1:
-            hit = not hit
-    return hit
-
-
-def _found():
-    """Tesserae that carry ink, with their raw position along the ramp.
-
-    The ramp is stretched across the tiles that exist rather than across the
-    bounding box, so both ends of it actually show up in the mark.
-    """
-    poly = outline()
-    found = []
-    y = 0.0
-    while y < H:
-        x = 0.0
-        while x < W:
-            w, h = min(CELL - GROUT, W - x), min(CELL - GROUT, H - y)
-            # a tile counts if any of its corners or its centre land on the T
-            pts = [(x + w / 2, y + h / 2), (x + 1, y + 1), (x + w - 1, y + 1),
-                   (x + 1, y + h - 1), (x + w - 1, y + h - 1)]
-            if any(_inside(poly, px, py) for px, py in pts):
-                found.append([x, y, w, h, axis(x + w / 2, y + h / 2)])
-            x += CELL
-        y += CELL
-    return found
+def tile(x, y):
+    """One tessera with its top-left at (x, y)."""
+    k = LEAN * TILE_H
+    return [(x, y), (x + TILE_W, y), (x + TILE_W - k, y + TILE_H), (x - k, y + TILE_H)]
 
 
 def tiles():
-    """Tesserae with their colours, the ramp stretched across the ones that exist."""
-    found = _found()
-    lo, hi = ramp_span()
-    return [(x, y, w, h, "#%02X%02X%02X" % ramp((t - lo) / (hi - lo)))
-            for x, y, w, h, t in found]
-
-
-def ramp_span():
-    """The stretch of the gradient the mark actually covers."""
-    vals = [t[4] for t in _found()]
-    return min(vals), max(vals)
-
-
-def path_d():
-    pts = outline()
-    return "M" + " ".join("%g %g" % p for p in pts) + "Z"
+    """The four tesserae, bottom of the pile first, with their colours."""
+    k = LEAN * TILE_H
+    out = []
+    for i in range(3):                                  # pile, bottom upwards
+        out.append((tile(k, H - TILE_H - i * (TILE_H + GAP)), COLOURS[i]))
+    out.append((tile(k + SLIDE, 0), COLOURS[3]))        # the loose one
+    return out
 
 
 def svg(square=False):
-    ox, oy = OFFSET
-    box = "%g %g %g %g" % (-ox, -oy, SQUARE, SQUARE) if square else "0 0 %g %g" % (W, H)
+    ox, oy = OFFSET if square else (0, 0)
+    box = ("%g %g %g %g" % (-ox, -oy, SQUARE, SQUARE)) if square else ("0 0 %g %g" % (W, H))
     ground = ('<rect x="%g" y="%g" width="%g" height="%g" fill="%s"/>'
               % (-ox, -oy, SQUARE, SQUARE, PAPER)) if square else ""
-    rects = "".join('<rect x="%g" y="%g" width="%g" height="%g" fill="%s"/>' % t for t in tiles())
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="%s" role="img" aria-label="Tessera">\n'
-        '  <title>Tessera</title>\n'
-        '  %s\n'
-        '  <defs><clipPath id="t"><path d="%s"/></clipPath></defs>\n'
-        '  <g clip-path="url(#t)">%s</g>\n'
-        '</svg>\n' % (box, ground, path_d(), rects))
+    shapes = "".join(
+        '<path fill="%s" d="M%s Z"/>' % (c, " ".join("%g %g" % p for p in poly))
+        for poly, c in tiles())
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="%s" role="img" aria-label="Tessera">\n'
+            '  <title>Tessera</title>\n'
+            '  %s\n'
+            '  %s\n'
+            '</svg>\n' % (box, ground, shapes))
 
 
 # ---- favicon --------------------------------------------------------------
+SS = 8      # drawn this much larger, then resized: keeps the diagonals smooth
+
 
 def render(n):
-    """One favicon size.
-
-    The tesserae are dropped here: at 64px and under each one is a couple of
-    pixels wide and the grout eats the letter, so the ico carries the same
-    ramp as a smooth fill. The tiles live in mark.svg and icon.svg.
-    """
-    from PIL import Image, ImageDraw
+    from PIL import Image
+    from PIL import ImageDraw
     ox, oy = OFFSET
-    s = n / SQUARE
-    img = Image.new("RGBA", (n, n), (255, 255, 255, 255))
-    shape = Image.new("L", (n, n), 0)
-    ImageDraw.Draw(shape).polygon([((x + ox) * s, (y + oy) * s) for x, y in outline()], fill=255)
-
-    lo, hi = ramp_span()
-    ink = Image.new("RGBA", (n, n))
-    px = ink.load()
-    for iy in range(n):
-        for ix in range(n):
-            x, y = ix / s - ox, iy / s - oy
-            t = (axis(x, y) - lo) / (hi - lo)
-            px[ix, iy] = ramp(t) + (255,)
-    img.paste(ink, (0, 0), shape)
-    return img
+    s = n * SS / SQUARE
+    big = Image.new("RGB", (n * SS, n * SS), (255, 255, 255))
+    d = ImageDraw.Draw(big)
+    for poly, c in tiles():
+        d.polygon([((x + ox) * s, (y + oy) * s) for x, y in poly], fill=c)
+    out = big.resize((n, n), Image.LANCZOS).convert("RGBA")
+    return out
 
 
 def bmp_entry(img):
@@ -205,7 +135,7 @@ def write_ico(sizes=(16, 32, 48, 64)):
 def main():
     (ROOT / "mark.svg").write_text(svg(), encoding="utf-8", newline="\n")
     (ROOT / "icon.svg").write_text(svg(square=True), encoding="utf-8", newline="\n")
-    print("wrote mark.svg and icon.svg (%d tesserae)" % len(tiles()))
+    print("wrote mark.svg (%g x %g) and icon.svg (%d square)" % (W, H, SQUARE))
     try:
         write_ico()
     except ImportError:

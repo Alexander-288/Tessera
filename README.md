@@ -90,9 +90,9 @@ to the split version; the split was a pure extraction with no code changes.
 index.html             markup only
 css/styles.css         all styling
 js/app.js              all behavior
-mark.svg               the mark: a T built from tesserae on a gradient
+mark.svg               the mark: a pile of tesserae with one sliding off
 icon.svg               the same mark on a square paper ground
-favicon.ico            16/32/48/64px; too small for grout, so the ramp is smooth
+favicon.ico            16/32/48/64px, drawn per size from the same tiles
 compact/tessera.html   single-file build of the same app
 build-compact.py       regenerates the file above from the three sources
 make-icons.py          regenerates the three files above (Pillow for the .ico)
