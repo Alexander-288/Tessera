@@ -90,11 +90,12 @@ to the split version; the split was a pure extraction with no code changes.
 index.html             markup only
 css/styles.css         all styling
 js/app.js              all behavior
-icon.svg               the mark: four sheared tesserae, one inked
-favicon.ico            16/32/48/64px, same geometry; 16px drops to one tile
+mark.svg               the mark: a T built from tesserae on a gradient
+icon.svg               the same mark on a square paper ground
+favicon.ico            16/32/48/64px; too small for grout, so the ramp is smooth
 compact/tessera.html   single-file build of the same app
 build-compact.py       regenerates the file above from the three sources
-make-favicon.py        regenerates favicon.ico (needs Pillow)
+make-icons.py          regenerates the three files above (Pillow for the .ico)
 ```
 
 There are no dependencies and no package manager. The compact file is generated from the
@@ -107,13 +108,15 @@ python build-compact.py
 That inlines the CSS and JS, embeds the icon as a data URI so the file stays portable, and
 verifies no external reference survived.
 
-`favicon.ico` is checked in, so you only need to regenerate it if you change the mark:
+The mark and its icons are checked in, so you only need this if you change the geometry
+or the gradient in `make-icons.py`:
 
 ```bash
-python make-favicon.py
+python make-icons.py
 ```
 
-That one needs Pillow; nothing else in the project has a dependency.
+Only the `.ico` needs Pillow; the SVGs are written without it, and nothing else in the
+project has a dependency.
 
 ## Storage
 

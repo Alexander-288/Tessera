@@ -17,12 +17,14 @@ SRC = ROOT / "index.html"
 CSS = ROOT / "css" / "styles.css"
 JS = ROOT / "js" / "app.js"
 ICON = ROOT / "icon.svg"
+MARK = ROOT / "mark.svg"
 OUT = ROOT / "compact" / "tessera.html"
 
 LINK = '<link rel="stylesheet" href="css/styles.css">'
 SCRIPT = '<script src="js/app.js"></script>'
 ICO = '<link rel="icon" href="favicon.ico" sizes="any">'
 SVG_ICON = '<link rel="icon" type="image/svg+xml" href="icon.svg">'
+MARK_TAG = '<img class="mark" src="mark.svg" alt="" width="36" height="24">'
 
 
 def read(p):
@@ -34,7 +36,7 @@ def read(p):
 def main():
     html, css, js = read(SRC), read(CSS), read(JS)
 
-    for needle in (LINK, SCRIPT, ICO, SVG_ICON):
+    for needle in (LINK, SCRIPT, ICO, SVG_ICON, MARK_TAG):
         if needle not in html:
             sys.exit("index.html no longer contains %s \u2014 update build-compact.py" % needle)
 
@@ -50,6 +52,11 @@ def main():
         SVG_ICON,
         '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%s">' % icon)
 
+    mark = urllib.parse.quote(read(MARK).strip(), safe="/:=")
+    html = html.replace(
+        MARK_TAG,
+        '<img class="mark" src="data:image/svg+xml,%s" alt="" width="36" height="24">' % mark)
+
     html = html.replace(LINK, "<style>\n%s\n</style>" % css.strip())
     html = html.replace(SCRIPT, "<script>\n%s\n</script>" % js.strip())
 
@@ -57,7 +64,7 @@ def main():
     OUT.write_text(html, encoding="utf-8", newline="\n")
 
     # Sanity: nothing should still point at the external files.
-    leftover = re.findall(r'(?:href|src)="(?!data:)(?:css/|js/|icon\.svg|favicon\.ico)[^"]*"', html)
+    leftover = re.findall(r'(?:href|src)="(?!data:)(?:css/|js/|icon\.svg|mark\.svg|favicon\.ico)[^"]*"', html)
     if leftover:
         sys.exit("external references survived inlining: %s" % leftover)
 
