@@ -23,7 +23,8 @@ body{
 header{padding:34px 0 0}
 .wordmark{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;font-weight:700;background:none;border:0;color:var(--ink);cursor:pointer;padding:0}
 .wordmark span{letter-spacing:.42em}
-.mark{flex:0 0 auto;width:14px;height:14px;display:block;stroke:currentColor;fill:none;stroke-width:1;shape-rendering:crispEdges}
+.mark{flex:0 0 auto;width:24px;height:16px;display:block;stroke:currentColor;fill:none;stroke-width:1;vector-effect:non-scaling-stroke}
+.mark .inked{fill:currentColor}
 header .dim{margin-top:14px}
 
 /* ---- view switching ---- */

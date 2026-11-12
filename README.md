@@ -90,8 +90,8 @@ to the split version; the split was a pure extraction with no code changes.
 index.html             markup only
 css/styles.css         all styling
 js/app.js              all behavior
-icon.svg               the mark: four tesserae, one inked
-favicon.ico            16/32/48/64px, generated from the same geometry
+icon.svg               the mark: four sheared tesserae, one inked
+favicon.ico            16/32/48/64px, same geometry; 16px drops to one tile
 compact/tessera.html   single-file build of the same app
 build-compact.py       regenerates the file above from the three sources
 make-favicon.py        regenerates favicon.ico (needs Pillow)

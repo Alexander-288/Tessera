@@ -17,23 +17,46 @@ OUT = ROOT / "favicon.ico"
 INK = (0, 0, 0, 255)
 PAPER = (255, 255, 255, 255)   # opaque: keeps it legible on dark tab bars too
 
-# In a 16-unit grid: four tiles at 0 and 9, each 7 across, 2 apart.
-ORIGINS = (0, 9)
-TILE = 7
+# Four tesserae on a 2x2 grid, sheared 2:1 like the rest of the brand marks.
+# Units match icon.svg: a 152 square with the 150x100 mark at (1, 26).
+BOX = 152.0
+ORIGIN = (1.0, 26.0)
+TILE = 43.0
+STEP = 57.0        # tile + gap
+LEAN = 0.5         # x shifts half a unit for every unit of height
 SIZES = (16, 32, 48, 64)
 
 
+def tile_points(row, col):
+    """The parallelogram for one tessera, in icon.svg units."""
+    y = row * STEP
+    x = col * STEP + LEAN * (100.0 - y)
+    return [(x, y), (x + TILE, y),
+            (x + TILE - LEAN * TILE, y + TILE), (x - LEAN * TILE, y + TILE)]
+
+
+def lone_tessera(n):
+    """At 16px the full grid turns to mush, so the tab gets one inked tile."""
+    img = Image.new("RGBA", (n, n), PAPER)
+    t = round((n - 2) / 1.5)
+    x, y = (n - t * 1.5) / 2 + t * LEAN, (n - t) / 2
+    ImageDraw.Draw(img).polygon(
+        [(x, y), (x + t, y), (x + t - t * LEAN, y + t), (x - t * LEAN, y + t)], fill=INK)
+    return img
+
+
 def render(n):
-    s = n / 16
+    if n < 24:
+        return lone_tessera(n)
+    s = n / BOX
     img = Image.new("RGBA", (n, n), PAPER)
     d = ImageDraw.Draw(img)
-    w = max(1, round(s))                      # stroke scales with the icon
-    for row, y in enumerate(ORIGINS):
-        for col, x in enumerate(ORIGINS):
-            box = [round(x * s), round(y * s),
-                   round((x + TILE) * s) - 1, round((y + TILE) * s) - 1]
+    for row in range(2):
+        for col in range(2):
+            pts = [((ORIGIN[0] + x) * s, (ORIGIN[1] + y) * s)
+                   for x, y in tile_points(row, col)]
             filled = row == 0 and col == 0    # one inked tessera
-            d.rectangle(box, fill=INK if filled else None, outline=INK, width=w)
+            d.polygon(pts, fill=INK if filled else None, outline=INK)
     return img
 
 
